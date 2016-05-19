@@ -1,0 +1,15 @@
+{
+  "name": "aclj_performanceMonitor",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node app.js",
+    "test":"mocha"
+  },
+  "dependencies": {
+    "phantom":"*",
+    "yargs":"*"
+  },
+  "devDependencies": {
+  }
+}

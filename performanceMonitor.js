@@ -1,6 +1,7 @@
 var phantom = require('phantom');
+var driver=require('node-phantom-simple');
 
-function benchmark(url,cb){
+function benchmarkWithPhantom(url,cb){
     var _ph, _page, _resources={};
 
     phantom.create().then(ph => {
@@ -14,7 +15,7 @@ function benchmark(url,cb){
         if(typeof _resources[urlKey] === 'undefined') _resources[urlKey] = {};
         _resources[urlKey].start=new Date();
       });
-      page.on('onResourceReceived', function(responseData, networkResponse) {
+      page.on('onResourceReceived', function(responseData) {
         var urlKey = responseData.url.split('?')[0];
         if(typeof _resources[urlKey] === 'undefined') _resources[urlKey] = {};
         if(responseData.stage=='start'){
@@ -36,33 +37,54 @@ function benchmark(url,cb){
       _ph.exit();
     });
 }
+function benchmarkWithSlimer(url,cb){
+    driver.create({path:'./slimerjs-0.10.0/slimerjs'},function(err,sl) {
+        return sl.createPage(function(err,page) {
+            return page.open(url, function(err,status) {
+                return page.evaluate(
+                    function() { var timings = performance.getEntries();timings.unshift(performance.timing);return timings; },
+                    function(err,result){
+                        debugger;
+                        sl.exit();
+                        return cb(result);
+                });
+            });
+        });
+    });
+}
 exports.pageBenchmark = function(url,count,msPause){
     _statsBenchmarks(url,count,msPause,[]);
 }
 function _statsBenchmarks(url,count,msPause,stats){
     if(count==0){
-        _outputStats(stats);
+        return _outputStats(stats,'slimer');
+    }else{
+        return benchmarkWithSlimer(url,function(resources){
+            stats.push(resources);
+            setTimeout(function(url,count,msPause,stats){ return function(){ return _statsBenchmarks(url,count,msPause,stats)}}(url,count-1,msPause,stats),msPause);
+        })
     }
-    benchmark(url,function(resources){
-        stats.push(resources);
-        setTimeout(function(url,count,msPause,stats){ return function(){ return _statsBenchmarks(url,count,msPause,stats)}}(url,count-1,msPause,stats),msPause);
-    })
 }
-function _outputStats(stats){
+function _outputStats(stats,type){
     var finalStats = {};
-    for(var i=0;i<stats.length;i++){
-        for(var j in stats[i]){
-            if(typeof finalStats[j] == "undefined"){
-                finalStats[j] = {waitings:[],receivings:[]};
+    if(type=='phantom'){
+        for(var i=0;i<stats.length;i++){
+            for(var j in stats[i]){
+                if(typeof finalStats[j] == "undefined"){
+                    finalStats[j] = {waitings:[],receivings:[],timings:[]};
+                }
+                finalStats[j].waitings.push(stats[i][j].waiting);
+                finalStats[j].receivings.push(stats[i][j].receiving);
+                finalStats[j].timings.push(stats[i][j].timings);
             }
-            finalStats[j].waitings.push(stats[i][j].waiting);
-            finalStats[j].receivings.push(stats[i][j].receiving);
         }
-    }
-    for(var k in finalStats){
-        finalStats[k].averageWaiting = _averageArray(finalStats[k].waitings);
-        finalStats[k].averageReceiving = _averageArray(finalStats[k].receivings);
-        finalStats[k].averageTotal = finalStats[k].averageWaiting+finalStats[k].averageReceiving;
+        for(var k in finalStats){
+            finalStats[k].averageWaiting = _averageArray(finalStats[k].waitings);
+            finalStats[k].averageReceiving = _averageArray(finalStats[k].receivings);
+            finalStats[k].averageTotal = finalStats[k].averageWaiting+finalStats[k].averageReceiving;
+        }
+    }else if(type=='slimer'){
+        finalStats=stats;
     }
     console.log(finalStats);
     setTimeout(process.exit,1000);

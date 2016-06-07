@@ -9,7 +9,7 @@ app.set('port', process.env.PORT || 4005);
 app.use(bodyParser.json({strict:false}))
 app.use(function(req,res,next){ //NOTE: allowing cors.
 	var origin = req.headers['origin'];
-	var originWhitelist = ['http://aclj.org', 'https://aclj.org', 'http://localhost:4000'];
+	var originWhitelist = ['http://aclj.org', 'https://aclj.org', 'http://dev.aclj.org', 'https://dev.aclj.org', 'http://localhost:4000'];
 	if(originWhitelist.indexOf(origin)!=-1){
 		res.setHeader('Access-Control-Allow-Origin', origin);
 		res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');

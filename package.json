@@ -8,9 +8,9 @@
   },
   "dependencies": {
     "phantom":"*",
-    "yargs":"*",
-    "node-phantom-simple":"*",
-    "slimerjs":"*"
+    "express":"*",
+    "mongodb":"*",
+    "body-parser": "*"
   },
   "devDependencies": {
   }
